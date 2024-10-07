@@ -236,7 +236,7 @@ private:
             {
                 DEBUG_INFO(this->get_logger(), "----call association rfid----");
                 f_marker_association_success_ = marker_association_by_rfid();
-                DEBUG_INFO(this->get_logger(), "----exit association rfid----")
+                DEBUG_INFO(this->get_logger(), "----exit association rfid----");
 
                 if ((f_rfid_forced_change_req_ == true ) &&  //  強制的にRFIDにより自己位置推定を行う要求フラグがON？
                     (f_marker_association_success_ == true))  //  RFIDによるmm_id紐付け成功？
