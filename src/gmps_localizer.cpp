@@ -9,9 +9,9 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp> 	//in out pose
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp> 	//in velocity
-#include "gmps_msgs/msg/gmps_detect.hpp"                        //in gmps detect
-#include "gmps_msgs/msg/gmps_log.hpp"                           //out gmps log
-#include "gmps_msgs/msg/rfid.hpp"                               //in rfid
+#include "gmps_msgs_package/msg/gmps_detect.hpp"                        //in gmps detect
+#include "gmps_msgs_package/msg/gmps_log.hpp"                           //out gmps log
+#include "gmps_msgs_package/msg/rfid.hpp"                               //in rfid
 
 #define RFID_QUEUE_SIZE 10 	//RFIDの検知情報を貯めこむqueueのサイズ //note 10を超えることはまずない
 #define SHOW_DEBUG_INFO 0 	//DEBUG_INFOを有効
@@ -61,11 +61,11 @@ class GMPSLocalizer : public rclcpp::Node
 private:
     /* Publisher */
     rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pub_gmps_pose_;
-    rclcpp::Publisher<gmps_msgs::msg::GmpsLog>::SharedPtr pub_gmps_log_;    
+    rclcpp::Publisher<gmps_msgs_package::msg::GmpsLog>::SharedPtr pub_gmps_log_;
     /* Subscriber */
     rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr sub_prev_pose_;
-    rclcpp::Subscription<gmps_msgs::msg::GmpsDetect>::SharedPtr sub_gmps_detect_;
-    rclcpp::Subscription<gmps_msgs::msg::Rfid>::SharedPtr sub_rfid_;
+    rclcpp::Subscription<gmps_msgs_package::msg::GmpsDetect>::SharedPtr sub_gmps_detect_;
+    rclcpp::Subscription<gmps_msgs_package::msg::Rfid>::SharedPtr sub_rfid_;
     rclcpp::Subscription<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr sub_velocity_;
     /* Timer */
     rclcpp::TimerBase::SharedPtr timer_;
@@ -85,15 +85,16 @@ private:
     double param_th_association_break_dist_m_;      //探索を打ち切る閾値[m]。マーカーの最小設置間隔は決まっているので、ある程度近いマーカが見つかったらそれ以上探索する必要はない
     double param_th_dist_double_marker_m_;          //この距離以内なら二連マーカと判定
     double param_th_yaw_diff_double_marker_rad_;    //このyaw変化以内なら二連マーカと判定
-    double param_marker_d_dist_m_;                  //想定するマーカ間距離
-    double param_th_marker_d_dist_m_;               //マーカ間の誤差。例）マーカ間2.0mで0.2mの場合、2.0±0.2mならマーカ間が正しいと判定
-    double param_th_rfdi_forced_section_change_m_;  //マーカ検知間の距離が本項目を超えたら、強制的にRFIDによるマーカID補正を行う
-
 
     std::string marker_table_csv_name_; //マーカーテーブルのfilename
     double sigma_x_gmps_;               //X座標の標準偏差
     double sigma_y_gmps_;               //Y座標の標準偏差
-    double sigma_theta_gmps_;           //yawの標準偏差 
+    double sigma_theta_gmps_;           //yawの標準偏差
+
+    // 強制RFIDマーカ紐付けにて追加
+    double param_marker_d_dist_m_;                  //想定するマーカ間距離
+    double param_th_marker_d_dist_m_;               //マーカ間の誤差。例）マーカ間2.0mで0.2mの場合、2.0±0.2mならマーカ間が正しいと判定
+    double param_th_rfdi_forced_section_change_m_;  //マーカ検知間の距離が本項目を超えたら、強制的にRFIDによるマーカID補正を行う
 
     geometry_msgs::msg::PoseWithCovarianceStamped prev_pose_;       //自己位置の前回値
     double prev_yaw_;                                               //previous yaw from prev pose
@@ -158,7 +159,7 @@ private:
     }
 
     //RFID R/Wからのタグ番号通知を受信したら、RFIDキューをpushする
-    void callbackRfid(const gmps_msgs::msg::Rfid::SharedPtr msg)
+    void callbackRfid(const gmps_msgs_package::msg::Rfid::SharedPtr msg)
     {
         DEBUG_INFO(this->get_logger(), "====callback rfid====");
         //check empty and duplicate
@@ -194,7 +195,7 @@ private:
 
     //GMPSセンサからの磁気マーカ検知情報を受信したら、
     //磁気マーカqueueをpushし、対応付けと観測座標の計算を行う
-    void callbackDetect(const gmps_msgs::msg::GmpsDetect::SharedPtr msg)
+    void callbackDetect(const gmps_msgs_package::msg::GmpsDetect::SharedPtr msg)
     {
         bool ret_bo;
 
@@ -214,7 +215,7 @@ private:
         marker_queue_[NOW] = blank_info;
         DEBUG_INFO(this->get_logger(), "lateral_deviation=%.3f, pole=%d,delay_dist=%.2f, mileage=%.2f", 
             marker_queue_[NOW].lateral_deviation, marker_queue_[NOW].pole, marker_queue_[NOW].delay_dist, marker_queue_[NOW].mileage);
-        
+
         //init
         f_marker_association_success_ = false;
         f_valid_rfid_detected_ = false;
@@ -235,7 +236,7 @@ private:
             {
                 DEBUG_INFO(this->get_logger(), "----call association rfid----");
                 f_marker_association_success_ = marker_association_by_rfid();
-                DEBUG_INFO(this->get_logger(), "----exit association rfid----");	
+                DEBUG_INFO(this->get_logger(), "----exit association rfid----")
 
                 if ((f_rfid_forced_change_req_ == true ) &&  //  強制的にRFIDにより自己位置推定を行う要求フラグがON？
                     (f_marker_association_success_ == true))  //  RFIDによるmm_id紐付け成功？
@@ -262,7 +263,7 @@ private:
             f_marker_association_success_ = marker_association_by_prev_pose();
             DEBUG_INFO(this->get_logger(), "----exit association pose----");
         }
-        
+
         publish_log(); //対応付けが失敗した場合でもログはpublishする
 
         if(f_marker_association_success_ == false)
@@ -286,7 +287,7 @@ private:
 
             if (f_rfid_forced_change_req_ == true)
             {
-                // RFID２連続受信でき２連マーカと判定したので、強制的にRFIDにより自己位置推定要求をOFFする。				
+                // RFID２連続受信でき２連マーカと判定したので、強制的にRFIDにより自己位置推定要求をOFFする。
                 f_rfid_forced_disable();
             }
 
@@ -319,7 +320,7 @@ private:
         if (mileage_between_markers > param_th_rfdi_forced_section_change_m_)
         {
             f_rfid_forced_change_req_ = true;
-            DEBUG_INFO(this->get_logger(), "rfid_forced enables because marker detection interval(%2.2f m) is too far",mileage_between_markers);	
+            DEBUG_INFO(this->get_logger(), "rfid_forced enables because marker detection interval(%2.2f m) is too far",mileage_between_markers);
         }
 
     }
@@ -330,7 +331,7 @@ private:
 
         f_rfid_next_mm_id_change_req_ = true;		// 次のマーカの検知時に、強制的にマーカIDを変更フラグON
         rfid_detection_mileage_ = mileage_;
-    //	DEBUG_INFO(this->get_logger(), "f_rfid_next_mm_id_change_req  on %f",mileage_);	
+    //	DEBUG_INFO(this->get_logger(), "f_rfid_next_mm_id_change_req  on %f",mileage_);
 
     }
 
@@ -339,7 +340,7 @@ private:
     {
         DEBUG_INFO(this->get_logger(), "rfid_forced disables");	
 
-        f_rfid_forced_change_req_ = false;	
+        f_rfid_forced_change_req_ = false;
         f_rfid_next_mm_id_change_req_ = false;		// 次のマーカの検知時に、強制的にマーカIDを変更フラグON
     }
 
@@ -351,8 +352,8 @@ private:
         double mileage_diff;
         bool ret_bo=false; // 実施の有無
 
-        mileage_diff = mileage_ - rfid_detection_mileage_;                          //公道なら2m間隔 or 工場内搬送なら50cmm間隔 
-        if (f_rfid_next_mm_id_change_req_ == true)                                  //次のマーカの検知時に、強制的にマーカIDを変更フラグON? 
+        mileage_diff = mileage_ - rfid_detection_mileage_;                          //公道なら2m間隔 or 工場内搬送なら50cmm間隔
+        if (f_rfid_next_mm_id_change_req_ == true)                                  //次のマーカの検知時に、強制的にマーカIDを変更フラグON?
         {
             if (abs(mileage_diff-param_marker_d_dist_m_) < param_th_marker_d_dist_m_) // マーカ検知間の距離誤差がparam_th_marker_d_dist_m_以内？
             {
@@ -366,12 +367,12 @@ private:
                 marker_queue_[NOW].y_marker = marker_table_[min_i].y;
                 marker_queue_[NOW].mm_id = marker_table_[min_i].mm_id;
                 marker_queue_[NOW].tag_id_table = marker_table_[min_i].tag_id;
-        
+
                 ret_bo  = true;
 
                 DEBUG_INFO(this->get_logger(), "rfid_forced assocation marker_queue[NOW]_mm_id %d",marker_queue_[NOW].mm_id);
                 f_rfid_forced_disable();
-            } else 
+            } else
             {
                 DEBUG_INFO(this->get_logger(), "rfid_forced assocation NG  dist between marker is %2.2f ",mileage_diff);
             }
@@ -406,12 +407,12 @@ private:
             if (mileage_rfid_gmps < min_rfid_assoc_) //最も古いRFIDの走行距離がMIN未満であればこれ以上探索する意味はない
             {
                 DEBUG_INFO(this->get_logger(), "dist < min  ---->  QUIT tag_id=%d", rfid_queue_.front().tag_id_detected);
-                break; 
+                break;
             }
             else if (mileage_rfid_gmps > max_rfid_assoc_) //走行距離がMAXを超えている場合は破棄する。
             {
                 DEBUG_INFO(this->get_logger(), "dist > max  ---->  CONTINUE tag_id=%d", rfid_queue_.front().tag_id_detected);
-                rfid_queue_.pop(); 
+                rfid_queue_.pop();
                 continue;
             }
             else //min <= dist <= max
@@ -447,14 +448,14 @@ private:
             {
                 j = j + marker_table_.size();
             }
-            else if (j >= marker_table_.size()) //終点を超えたらループ
+            else if (static_cast<size_t>(j) >= marker_table_.size()) //終点を超えたらループ
             {
                 j = j - marker_table_.size();
             }
             //DEBUG_INFO(this->get_logger(), "j=%d", j);
 
             /* RFID による探索 */
-            if(marker_queue_[NOW].tag_id_detected == marker_table_[j].tag_id) //検知したタグ番号と同じ番号が見つかるまで進める
+            if(static_cast<uint32_t>(marker_queue_[NOW].tag_id_detected) == marker_table_[j].tag_id) //検知したタグ番号と同じ番号が見つかるまで進める
             {
                 RCLCPP_INFO(this->get_logger(), "TAG_ID %d matched at table index %d", marker_queue_[NOW].tag_id_detected, j);
                 marker_queue_[NOW].min_i = j;
@@ -493,7 +494,7 @@ private:
             const double predict_marker_y = prev_pose_.pose.pose.position.y
                 + (param_tf_x_) * sin(prev_yaw_) + (param_tf_y_) * cos(prev_yaw_) //from base_link to gmps_center
                 + (- marker_queue_[NOW].delay_dist) * sin(prev_yaw_ + param_tf_yaw_) - (+ marker_queue_[NOW].lateral_deviation) * cos(prev_yaw_ + param_tf_yaw_); //from gmps_center to marker
-            
+
             const double dist = calc_dist(marker_table_[marker_queue_[NOW].min_i].x - predict_marker_x,
                 marker_table_[marker_queue_[NOW].min_i].y - predict_marker_y);
 
@@ -524,14 +525,13 @@ private:
             marker_queue_[NOW].mm_id, marker_queue_[NOW].tag_id_table,
             marker_queue_[NOW].x_marker, marker_queue_[NOW].y_marker);
         return true;
-        
     }
 
     //自己位置からテーブルを探索する
     bool marker_association_by_prev_pose()
     {
         DEBUG_INFO(this->get_logger(), "association pose called");
-        //baselinkからsensor, markerまでの座標変換 
+        //baselinkからsensor, markerまでの座標変換
         geometry_msgs::msg::Point predict_marker_pose; //自己位置から予想したマーカー位置
         predict_marker_pose.x = prev_pose_.pose.pose.position.x
             + (param_tf_x_) * cos(prev_yaw_) - (param_tf_y_) * sin(prev_yaw_) //from base_link to gmps_center
@@ -539,13 +539,13 @@ private:
         predict_marker_pose.y = prev_pose_.pose.pose.position.y
             + (param_tf_x_) * sin(prev_yaw_) + (param_tf_y_) * cos(prev_yaw_) //from base_link to gmps_center
             + (- marker_queue_[NOW].delay_dist) * sin(prev_yaw_ + param_tf_yaw_) - (+ marker_queue_[NOW].lateral_deviation) * cos(prev_yaw_ + param_tf_yaw_); //from gmps_center to marker
-        
+
         //association
         double min_dist = 100000;
         int min_i = 100000;
         double dist;
 
-        const int i_start = marker_queue_[PREV].min_i; 
+        const int i_start = marker_queue_[PREV].min_i;
         const int i_end = i_start + marker_table_.size(); //設定としては常に全点探索。十分近いものが見つかったら中断する
         DEBUG_INFO(this->get_logger(), "i_start=%d, i_end=%d",i_start, i_end);
         for (int i=i_start; i < i_end; i++)
@@ -555,7 +555,7 @@ private:
             {
                 j = j + marker_table_.size();
             }
-            else if (j >= marker_table_.size()) //終点を超えたらループ
+            else if (static_cast<uint32_t>(j) >= marker_table_.size()) //終点を超えたらループ
             {
                 j = j - marker_table_.size();
             }
@@ -613,7 +613,7 @@ private:
             "push marker queue with mm_id=%d, tag_id=%d, X=%.2lf, Y=%.2lf",
             marker_queue_[NOW].mm_id, marker_queue_[NOW].tag_id_table,
             marker_queue_[NOW].x_marker, marker_queue_[NOW].y_marker);
-        
+
         return true;
     }
 
@@ -626,35 +626,35 @@ private:
 
         //一個目のマーカと二個目のマーカでyawが大きく変化していないこと
         //note twist.angular.zを使えばyawrateの積分から判定できるはず
-        const double yaw_diff_between_markers = 
+        const double yaw_diff_between_markers =
             marker_queue_[NOW].yaw_prev_detected - marker_queue_[PREV].yaw_prev_detected;
 
-        // 同じmm_id? 
+        // 同じmm_id?
         if (marker_queue_[NOW].mm_id  == marker_queue_[PREV].mm_id)
         {
             //異常扱い
 
             RCLCPP_ERROR(this->get_logger(),
             "check_double_marker mm_id is same id=%d,%d", marker_queue_[NOW].mm_id ,marker_queue_[PREV].mm_id);
-            
+
             //marker_queue_[NOW].mm_id = -3;    //debug publish_log()の発行タイミングを変更する必要があり、今回は保留..
 
             return false;
         }
 
         return ((0.1 < mileage_between_markers) && //あまりにも近距離で連続して検知した場合は誤検知なので無視する
-                (mileage_between_markers < param_th_dist_double_marker_m_) && 
+                (mileage_between_markers < param_th_dist_double_marker_m_) &&
                 (abs(yaw_diff_between_markers) < param_th_yaw_diff_double_marker_rad_));
     }
 
     void measurement_single_marker()
     {
         //markerからsensor, baselinkまでの変換
-        measurement_pose_.pose.pose.position.x = marker_queue_[NOW].x_marker 
+        measurement_pose_.pose.pose.position.x = marker_queue_[NOW].x_marker
             - (- marker_queue_[NOW].delay_dist) * cos(prev_yaw_ + param_tf_yaw_) - (+ marker_queue_[NOW].lateral_deviation) * sin(prev_yaw_ + param_tf_yaw_) //from marker to gmps_center
             - (param_tf_x_) * cos(prev_yaw_) + (param_tf_y_) * sin(prev_yaw_); //from gmps_center to base_link
 
-        measurement_pose_.pose.pose.position.y = marker_queue_[NOW].y_marker 
+        measurement_pose_.pose.pose.position.y = marker_queue_[NOW].y_marker
             - (- marker_queue_[NOW].delay_dist) * sin(prev_yaw_ + param_tf_yaw_) + (+ marker_queue_[NOW].lateral_deviation) * cos(prev_yaw_ + param_tf_yaw_) //from marker to gmps_center
             - (param_tf_x_) * sin(prev_yaw_) - (param_tf_y_) * cos(prev_yaw_); //from gmps_center to base_link
 
@@ -664,7 +664,7 @@ private:
         //covariance
         measurement_pose_.pose.covariance[6*0+0] = sigma_x_gmps_ * sigma_x_gmps_; //x*x
         measurement_pose_.pose.covariance[6*1+1] = sigma_y_gmps_ * sigma_y_gmps_; //y*y
-        measurement_pose_.pose.covariance[6*5+5] = sigma_theta_gmps_ * sigma_theta_gmps_; //yaw*yaw	
+        measurement_pose_.pose.covariance[6*5+5] = sigma_theta_gmps_ * sigma_theta_gmps_; //yaw*yaw
     }
 
     void measurement_double_marker()
@@ -684,12 +684,12 @@ private:
             marker_queue_[PREV].x_marker, marker_queue_[PREV].y_marker, marker_queue_[PREV].lateral_deviation,
             marker_queue_[NOW].x_marker, marker_queue_[NOW].y_marker, marker_queue_[NOW].lateral_deviation);
         DEBUG_INFO(this->get_logger(),"yaw_marker=%.5f, dtheta=%.5f, yaw_gmps=%.5f", yaw_marker, dtheta, yaw_gmps);
-        
+
         //markerからsensor, baselinkまでの変換
-        measurement_pose_.pose.pose.position.x = marker_queue_[NOW].x_marker 
+        measurement_pose_.pose.pose.position.x = marker_queue_[NOW].x_marker
             - (- marker_queue_[NOW].delay_dist) * cos(yaw_gmps + param_tf_yaw_) - (+ marker_queue_[NOW].lateral_deviation) * sin(yaw_gmps + param_tf_yaw_) //from marker to gmps_center
             - (param_tf_x_) * cos(yaw_gmps) + (param_tf_y_) * sin(yaw_gmps); //from gmps_center to base_link
-        measurement_pose_.pose.pose.position.y = marker_queue_[NOW].y_marker 
+        measurement_pose_.pose.pose.position.y = marker_queue_[NOW].y_marker
             - (- marker_queue_[NOW].delay_dist) * sin(yaw_gmps + param_tf_yaw_) + (+ marker_queue_[NOW].lateral_deviation) * cos(yaw_gmps + param_tf_yaw_) //from marker to gmps_center
             - (param_tf_x_) * sin(yaw_gmps) - (param_tf_y_) * cos(yaw_gmps); //from gmps_center to base_link
         //zはprev_poseから継承
@@ -711,7 +711,7 @@ private:
     void publish_log()
     {
         DEBUG_INFO(this->get_logger(), "publish log");
-        gmps_msgs::msg::GmpsLog log_msg;
+        gmps_msgs_package::msg::GmpsLog log_msg;
         log_msg.header.stamp = gmps_stamp_;
         log_msg.header.frame_id = "gmps";
         //マーカ検知
@@ -735,7 +735,7 @@ private:
     void publish_pose()
     {
         DEBUG_INFO(this->get_logger(), "publish /gmps_pose with X=%.2f, Y=%.2f",
-            measurement_pose_.pose.pose.position.x, measurement_pose_.pose.pose.position.y);		
+            measurement_pose_.pose.pose.position.x, measurement_pose_.pose.pose.position.y);
         //poseのpublish
         geometry_msgs::msg::PoseWithCovarianceStamped gmps_pose; //output measurement pose for publish
         gmps_pose.header.frame_id = "map"; //frameIDはmap
@@ -747,7 +747,7 @@ private:
         gmps_pose.pose.covariance[6 * 0 + 0] = measurement_pose_.pose.covariance[6*0+0]; //x*x
         gmps_pose.pose.covariance[6 * 1 + 1] = measurement_pose_.pose.covariance[6*1+1]; //y*y
         gmps_pose.pose.covariance[6 * 5 + 5] = measurement_pose_.pose.covariance[6*5+5]; //yaw*yaw
-        
+
         pub_gmps_pose_->publish(gmps_pose);
 
         geometry_msgs::msg::TransformStamped transformStamped;
@@ -776,7 +776,7 @@ private:
             exit(1);
         }
         char buf[256];
-        
+
         FILE *fp = fopen(csvname, "r");
         if (fp == NULL)
         {
@@ -784,16 +784,16 @@ private:
             exit(1);
         }
 
-        fscanf(fp, "%s\n", buf); // headerは捨てる
-
         int32_t ret = 0;
+        ret = fscanf(fp, "%s\n", buf); // headerは捨てる
+
         int32_t num[4];
         double data[2];
         marker_point record; //vector代入用の一時変数
-        while((ret = fscanf(fp, "%d, %d, %d, %d, %lf, %lf\n", 
+        while((ret = fscanf(fp, "%d, %d, %d, %d, %lf, %lf\n",
         &num[0], &num[1], &num[2], &num[3], &data[0], &data[1] )) != EOF)
             {
-                record.mm_id = num[0]; 
+                record.mm_id = num[0];
                 record.tag_id = num[1];
                 record.mm_kind = num[2];
                 record.pole = num[3];
@@ -826,58 +826,39 @@ private:
 public:
     GMPSLocalizer(const rclcpp::NodeOptions &node_options)
         : rclcpp::Node("gmps_localizer", node_options)
+        /* parameters */
+        , param_enable_pole_(declare_parameter<bool>("enable_pole", true))
+        , param_enable_rfid_(declare_parameter<bool>("enable_rfid", false))
+        , param_tf_x_(declare_parameter<double>("tf_x", 1.0))
+        , param_tf_y_(declare_parameter<double>("tf_y", 0.0))
+        , param_tf_yaw_(declare_parameter<double>("tf_yaw", 0.0))
+        , param_tf_rfid_x_(declare_parameter<double>("tf_rfid_x", 2.0))
+        , param_th_rfid_detect_range_m_(declare_parameter<double>("th_rfid_detect_range_m", 0.5))
+        , param_th_association_error_dist_m_(declare_parameter<double>("th_association_error_dist_m", 0.5))
+        , param_th_association_break_dist_m_(declare_parameter<double>("th_association_break_dist_m", 0.3))
+        , param_th_dist_double_marker_m_(declare_parameter<double>("th_dist_double_marker_m", 2.5))
+        , param_th_yaw_diff_double_marker_rad_(declare_parameter<double>("th_yaw_diff_double_marker_rad", 0.05))
+        , marker_table_csv_name_(declare_parameter<std::string>("marker_table_csv_name", "gmps_driver/DATA/marker.csv"))
+        , sigma_x_gmps_(declare_parameter<double>("sigma_x_gmps", 0.07))
+        , sigma_y_gmps_(declare_parameter<double>("sigma_y_gmps", 0.07))
+        , sigma_theta_gmps_(declare_parameter<double>("sigma_theta_gmps", 0.1))
+        // 強制RFIDマーカ紐付けにて追加
+        , param_marker_d_dist_m_(declare_parameter<double>("marker_d_dist_m", 2.0))
+        , param_th_marker_d_dist_m_(declare_parameter<double>("th_marker_d_dist_m",0.2))
+        , param_th_rfdi_forced_section_change_m_(declare_parameter<double>("th_rfdi_forced_section_change_m",100.0))
     {
         RCLCPP_INFO(this->get_logger(), "constructor start");
-        /* parameters */
-        this->declare_parameter("enable_pole", true);
-        param_enable_pole_ = this->get_parameter("enable_pole").as_bool();
-        this->declare_parameter("enable_rfid", false);
-        param_enable_rfid_ = this->get_parameter("enable_rfid").as_bool();
-        this->declare_parameter("tf_x", 1.0);
-        param_tf_x_ = this->get_parameter("tf_x").as_double();
-        this->declare_parameter("tf_y", 0.0);
-        param_tf_y_ = this->get_parameter("tf_y").as_double();
-        this->declare_parameter("tf_yaw", 0.0);
-        param_tf_yaw_ = this->get_parameter("tf_yaw").as_double();
-        this->declare_parameter("tf_rfid_x", 2.0);
-        param_tf_rfid_x_ = this->get_parameter("tf_rfid_x").as_double();
-        this->declare_parameter("th_rfid_detect_range_m", 0.5);
-        param_th_rfid_detect_range_m_ = this->get_parameter("th_rfid_detect_range_m").as_double();
-        this->declare_parameter("th_association_error_dist_m", 0.5);
-        param_th_association_error_dist_m_ = this->get_parameter("th_association_error_dist_m").as_double();
-        this->declare_parameter("th_association_break_dist_m", 0.3);
-        param_th_association_break_dist_m_ = this->get_parameter("th_association_break_dist_m").as_double();
-        this->declare_parameter("th_dist_double_marker_m", 2.5);
-        param_th_dist_double_marker_m_ = this->get_parameter("th_dist_double_marker_m").as_double();
-        this->declare_parameter("th_yaw_diff_double_marker_rad", 0.05);
-        param_th_yaw_diff_double_marker_rad_ = this->get_parameter("th_yaw_diff_double_marker_rad").as_double();
-        this->declare_parameter("marker_table_csv_name", "gmps_driver/DATA/marker.csv");
-        marker_table_csv_name_ = this->get_parameter("marker_table_csv_name").as_string();
-        this->declare_parameter("sigma_x_gmps", 0.07);
-        sigma_x_gmps_ = this->get_parameter("sigma_x_gmps").as_double();
-        this->declare_parameter("sigma_y_gmps", 0.07);
-        sigma_y_gmps_ = this->get_parameter("sigma_y_gmps").as_double();
-        this->declare_parameter("sigma_theta_gmps", 0.1);
-        sigma_theta_gmps_ = this->get_parameter("sigma_theta_gmps").as_double();
-
-        // 強制RFIDマーカ紐付けにて追加
-        this->declare_parameter("marker_d_dist_m",2.0);
-        param_marker_d_dist_m_ = this->get_parameter("marker_d_dist_m").as_double();
-        this->declare_parameter("th_marker_d_dist_m",0.2);
-        param_th_marker_d_dist_m_ = this->get_parameter("th_marker_d_dist_m").as_double();
-        this->declare_parameter("th_rfdi_forced_section_change_m",100.0);
-        param_th_rfdi_forced_section_change_m_ = this->get_parameter("th_rfdi_forced_section_change_m").as_double();
 
         /* Publisher */
         pub_gmps_pose_ = this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>("out_gmps_pose", rclcpp::QoS(1));
-        pub_gmps_log_ = this->create_publisher<gmps_msgs::msg::GmpsLog>("out_gmps_log", rclcpp::QoS(1));
+        pub_gmps_log_ = this->create_publisher<gmps_msgs_package::msg::GmpsLog>("out_gmps_log", rclcpp::QoS(1));
 
         /* Subscriber */
         sub_prev_pose_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
             "in_prev_pose", rclcpp::QoS(1), std::bind(&GMPSLocalizer::callbackPrevPose, this, std::placeholders::_1));
-        sub_gmps_detect_ = this->create_subscription<gmps_msgs::msg::GmpsDetect>(
+        sub_gmps_detect_ = this->create_subscription<gmps_msgs_package::msg::GmpsDetect>(
             "in_gmps_detect", rclcpp::SensorDataQoS(), std::bind(&GMPSLocalizer::callbackDetect, this, std::placeholders::_1));
-        sub_rfid_ = this->create_subscription<gmps_msgs::msg::Rfid>(
+        sub_rfid_ = this->create_subscription<gmps_msgs_package::msg::Rfid>(
             "in_rfid", rclcpp::SensorDataQoS(), std::bind(&GMPSLocalizer::callbackRfid, this, std::placeholders::_1));
         sub_velocity_ = this->create_subscription<geometry_msgs::msg::TwistWithCovarianceStamped>(
             "in_velocity", rclcpp::QoS(1), std::bind(&GMPSLocalizer::callbackVelocity, this, std::placeholders::_1));
@@ -899,10 +880,17 @@ public:
 
 int main(int argc, char * argv[])
 {
-  rclcpp::init(argc, argv);
-  rclcpp::NodeOptions node_options;
-  auto node = std::make_shared<GMPSLocalizer>(node_options);
-  rclcpp::spin(node);
-  rclcpp::shutdown();
-  return 0;
+    rclcpp::init(argc, argv);
+    rclcpp::NodeOptions node_options;
+    std::shared_ptr<GMPSLocalizer> node;
+    try{//メンバ初期化リスト(コンストラクタ宣言と中括弧の間の記述)で例外がthrowされた場合のtry-catch
+        node = std::make_shared<GMPSLocalizer>(node_options);
+    } catch(std::runtime_error &e) {//ros2の例外型の継承元クラスはstd::runtime_error
+		RCLCPP_ERROR_STREAM(rclcpp::get_logger("gmps_localizer"), e.what());
+		return -1;
+	}
+
+    rclcpp::spin(node);
+    rclcpp::shutdown();
+    return 0;
 }

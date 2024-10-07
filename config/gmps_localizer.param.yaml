@@ -1,0 +1,23 @@
+/**:
+  ros__parameters:
+    # switch enables
+    enable_pole: true #磁気マーカの極性をmarker.csvに設定していない場合はfalse
+    enable_rfid: true #RFIDを搭載していない場合、タグ番号の書き込みをしていない場合はfalse
+    # TF from base_link to GMPS
+    tf_x: 1.0 #baselink to gmps +=front
+    tf_y: 0.0 #baselink to gmps +=left
+    tf_yaw: 0.0 #baselink to gmps +=CCW
+    tf_rfid_x: 2.0 #baselink to rfid +=front
+    # parameters
+    th_rfid_detect_range_m: 0.3 #RFIDの検知範囲。RFIDとマーカを対応付けする際の許容誤差
+    th_association_error_dist_m: 1.0 #この距離以内のマーカが見つからなければ対応付けエラー
+    th_association_break_dist_m: 0.5 #この距離以内のマーカが見つかったら探索を打ち切る
+    th_dist_double_marker_m: 2.5 #二連マーカと判定する距離閾値
+    th_yaw_diff_double_marker_rad: 0.05 #二連マーカと判定するyaw差分閾値
+    marker_d_dist_m: 2.0 #マーカ間の距離
+    th_marker_d_dist_m: 0.2 #マーカ間が正しい閾値 例 マーカ間2.0mで0.2mの場合、2.0±0.2mならマーカ間が正しいと判定
+    th_rfdi_forced_section_change_m: 100.0 #マーカ検知間の距離が本項目を超えたら、強制的にRFIDによるマーカID補正を行う
+    # covariance of gmps_pose
+    sigma_x_gmps: 0.07
+    sigma_y_gmps: 0.07
+    sigma_theta_gmps: 0.10
