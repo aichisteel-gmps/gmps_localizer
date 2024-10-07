@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
   <!-- param -->
-  <arg name="param_file" default="$(find-pkg-share gmps_localizer_package)/config/gmps_localizer.param.yaml"/>
+  <arg name="param_file" default="$(find-pkg-share gmps_localizer)/config/gmps_localizer.param.yaml"/>
   <!-- marker.csv -->
-  <arg name="marker_table_csv_name" default="$(find-pkg-share gmps_localizer_package)/DATA/marker_table_sample.csv"/><!-- 磁気マーカテーブルcsvのフルパス -->
+  <arg name="marker_table_csv_name" default="$(find-pkg-share gmps_localizer)/DATA/marker_table_sample.csv"/><!-- 磁気マーカテーブルcsvのフルパス -->
   <!-- topic name -->
   <arg name="in_prev_pose_name" default="/prev_pose"/>
   <arg name="in_gmps_detect_name" default="/gmps_detect"/>
@@ -12,7 +12,7 @@
   <arg name="out_gmps_pose_name" default="/gmps_pose"/>
   <arg name="out_gmps_log_name" default="/gmps_log"/>
 
-  <node pkg="gmps_localizer_package" exec="gmps_localizer" name="gmps_localizer" output="log">
+  <node pkg="gmps_localizer" exec="gmps_localizer" name="gmps_localizer" output="log">
     <param from="$(var param_file)"/>
     <param name="marker_table_csv_name" value="$(var marker_table_csv_name)"/>
 

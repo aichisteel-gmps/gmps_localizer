@@ -9,9 +9,9 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp> 	//in out pose
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp> 	//in velocity
-#include "gmps_msgs_package/msg/gmps_detect.hpp"                        //in gmps detect
-#include "gmps_msgs_package/msg/gmps_log.hpp"                           //out gmps log
-#include "gmps_msgs_package/msg/rfid.hpp"                               //in rfid
+#include "gmps_msgs/msg/gmps_detect.hpp"                        //in gmps detect
+#include "gmps_msgs/msg/gmps_log.hpp"                           //out gmps log
+#include "gmps_msgs/msg/rfid.hpp"                               //in rfid
 
 #define RFID_QUEUE_SIZE 10 	//RFIDの検知情報を貯めこむqueueのサイズ //note 10を超えることはまずない
 #define SHOW_DEBUG_INFO 0 	//DEBUG_INFOを有効
@@ -61,11 +61,11 @@ class GMPSLocalizer : public rclcpp::Node
 private:
     /* Publisher */
     rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pub_gmps_pose_;
-    rclcpp::Publisher<gmps_msgs_package::msg::GmpsLog>::SharedPtr pub_gmps_log_;
+    rclcpp::Publisher<gmps_msgs::msg::GmpsLog>::SharedPtr pub_gmps_log_;
     /* Subscriber */
     rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr sub_prev_pose_;
-    rclcpp::Subscription<gmps_msgs_package::msg::GmpsDetect>::SharedPtr sub_gmps_detect_;
-    rclcpp::Subscription<gmps_msgs_package::msg::Rfid>::SharedPtr sub_rfid_;
+    rclcpp::Subscription<gmps_msgs::msg::GmpsDetect>::SharedPtr sub_gmps_detect_;
+    rclcpp::Subscription<gmps_msgs::msg::Rfid>::SharedPtr sub_rfid_;
     rclcpp::Subscription<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr sub_velocity_;
     /* Timer */
     rclcpp::TimerBase::SharedPtr timer_;
@@ -159,7 +159,7 @@ private:
     }
 
     //RFID R/Wからのタグ番号通知を受信したら、RFIDキューをpushする
-    void callbackRfid(const gmps_msgs_package::msg::Rfid::SharedPtr msg)
+    void callbackRfid(const gmps_msgs::msg::Rfid::SharedPtr msg)
     {
         DEBUG_INFO(this->get_logger(), "====callback rfid====");
         //check empty and duplicate
@@ -195,7 +195,7 @@ private:
 
     //GMPSセンサからの磁気マーカ検知情報を受信したら、
     //磁気マーカqueueをpushし、対応付けと観測座標の計算を行う
-    void callbackDetect(const gmps_msgs_package::msg::GmpsDetect::SharedPtr msg)
+    void callbackDetect(const gmps_msgs::msg::GmpsDetect::SharedPtr msg)
     {
         bool ret_bo;
 
@@ -711,7 +711,7 @@ private:
     void publish_log()
     {
         DEBUG_INFO(this->get_logger(), "publish log");
-        gmps_msgs_package::msg::GmpsLog log_msg;
+        gmps_msgs::msg::GmpsLog log_msg;
         log_msg.header.stamp = gmps_stamp_;
         log_msg.header.frame_id = "gmps";
         //マーカ検知
@@ -851,14 +851,14 @@ public:
 
         /* Publisher */
         pub_gmps_pose_ = this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>("out_gmps_pose", rclcpp::QoS(1));
-        pub_gmps_log_ = this->create_publisher<gmps_msgs_package::msg::GmpsLog>("out_gmps_log", rclcpp::QoS(1));
+        pub_gmps_log_ = this->create_publisher<gmps_msgs::msg::GmpsLog>("out_gmps_log", rclcpp::QoS(1));
 
         /* Subscriber */
         sub_prev_pose_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
             "in_prev_pose", rclcpp::QoS(1), std::bind(&GMPSLocalizer::callbackPrevPose, this, std::placeholders::_1));
-        sub_gmps_detect_ = this->create_subscription<gmps_msgs_package::msg::GmpsDetect>(
+        sub_gmps_detect_ = this->create_subscription<gmps_msgs::msg::GmpsDetect>(
             "in_gmps_detect", rclcpp::SensorDataQoS(), std::bind(&GMPSLocalizer::callbackDetect, this, std::placeholders::_1));
-        sub_rfid_ = this->create_subscription<gmps_msgs_package::msg::Rfid>(
+        sub_rfid_ = this->create_subscription<gmps_msgs::msg::Rfid>(
             "in_rfid", rclcpp::SensorDataQoS(), std::bind(&GMPSLocalizer::callbackRfid, this, std::placeholders::_1));
         sub_velocity_ = this->create_subscription<geometry_msgs::msg::TwistWithCovarianceStamped>(
             "in_velocity", rclcpp::QoS(1), std::bind(&GMPSLocalizer::callbackVelocity, this, std::placeholders::_1));
