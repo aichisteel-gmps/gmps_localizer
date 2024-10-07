@@ -74,27 +74,27 @@ private:
 
 
     /* parameters */
-    bool param_enable_pole_;//
-    bool param_enable_rfid_;
-    double param_tf_x_;                             //baselinkからGMPSセンサ中心までの縦方向オフセット[m] +ならGMPSが前
-    double param_tf_y_;                             //baselinkからGMPSセンサ中心までの横方向オフセット[m] +ならGMPSが左
-    double param_tf_yaw_;                           //baselinkからGMPSセンサまでの角度オフセット[rad] +ならCCW
-    double param_tf_rfid_x_;                        //baselinkからRFIDリーダまでの縦方向オフセット[m]。+ならRFIDリーダが前
-    double param_th_rfid_detect_range_m_;           //RFIDの紐づけ許容誤差[m]
-    double param_th_association_error_dist_m_;      //自己位置から予測したマーカ位置と実際のマーカ敷設位置との許容誤差[m]
-    double param_th_association_break_dist_m_;      //探索を打ち切る閾値[m]。マーカーの最小設置間隔は決まっているので、ある程度近いマーカが見つかったらそれ以上探索する必要はない
-    double param_th_dist_double_marker_m_;          //この距離以内なら二連マーカと判定
-    double param_th_yaw_diff_double_marker_rad_;    //このyaw変化以内なら二連マーカと判定
+    const bool param_enable_pole_;//
+    const bool param_enable_rfid_;
+    const double param_tf_x_;                             //baselinkからGMPSセンサ中心までの縦方向オフセット[m] +ならGMPSが前
+    const double param_tf_y_;                             //baselinkからGMPSセンサ中心までの横方向オフセット[m] +ならGMPSが左
+    const double param_tf_yaw_;                           //baselinkからGMPSセンサまでの角度オフセット[rad] +ならCCW
+    const double param_tf_rfid_x_;                        //baselinkからRFIDリーダまでの縦方向オフセット[m]。+ならRFIDリーダが前
+    const double param_th_rfid_detect_range_m_;           //RFIDの紐づけ許容誤差[m]
+    const double param_th_association_error_dist_m_;      //自己位置から予測したマーカ位置と実際のマーカ敷設位置との許容誤差[m]
+    const double param_th_association_break_dist_m_;      //探索を打ち切る閾値[m]。マーカーの最小設置間隔は決まっているので、ある程度近いマーカが見つかったらそれ以上探索する必要はない
+    const double param_th_dist_double_marker_m_;          //この距離以内なら二連マーカと判定
+    const double param_th_yaw_diff_double_marker_rad_;    //このyaw変化以内なら二連マーカと判定
 
-    std::string marker_table_csv_name_; //マーカーテーブルのfilename
-    double sigma_x_gmps_;               //X座標の標準偏差
-    double sigma_y_gmps_;               //Y座標の標準偏差
-    double sigma_theta_gmps_;           //yawの標準偏差
+    const std::string marker_table_csv_name_; //マーカーテーブルのfilename
+    const double sigma_x_gmps_;               //X座標の標準偏差
+    const double sigma_y_gmps_;               //Y座標の標準偏差
+    const double sigma_theta_gmps_;           //yawの標準偏差
 
     // 強制RFIDマーカ紐付けにて追加
-    double param_marker_d_dist_m_;                  //想定するマーカ間距離
-    double param_th_marker_d_dist_m_;               //マーカ間の誤差。例）マーカ間2.0mで0.2mの場合、2.0±0.2mならマーカ間が正しいと判定
-    double param_th_rfdi_forced_section_change_m_;  //マーカ検知間の距離が本項目を超えたら、強制的にRFIDによるマーカID補正を行う
+    const double param_marker_d_dist_m_;                  //想定するマーカ間距離
+    const double param_th_marker_d_dist_m_;               //マーカ間の誤差。例）マーカ間2.0mで0.2mの場合、2.0±0.2mならマーカ間が正しいと判定
+    const double param_th_rfdi_forced_section_change_m_;  //マーカ検知間の距離が本項目を超えたら、強制的にRFIDによるマーカID補正を行う
 
     geometry_msgs::msg::PoseWithCovarianceStamped prev_pose_;       //自己位置の前回値
     double prev_yaw_;                                               //previous yaw from prev pose
