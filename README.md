@@ -120,7 +120,55 @@ $$ \tilde{x}_c = x_m^{(i)} - e_m\sin(\theta_c) + l_m^\prime \cos(\theta_c) $$
 
 $$\tilde{y}_c = y_m^{(i)} + e_m\cos(\theta_c) + l_m^\prime \sin(\theta_c)$$
 
-
+## How to tune parameters
+- enable_pole
+  - marker.csvの設定が正しく行われていればTrue.そうでなければFalse
+- enable_rfid
+  - RFIDリーダを搭載しており、marker.csvの設定が正しく行われていればTrue.そうでなければFalse
+- marker_table_csv_name
+  - 磁気マーカテーブルへのパス
+- tf_x
+  - baselinkからGMPSセンサ中心までの縦方向のオフセットを計測して設定。GMPSセンサが前にあるときが+
+- tf_y
+  - baselinkからGMPSセンサ中心までの横方向のオフセットを計測して設定。GMPSセンサが左にあるときが+
+- tf_yaw
+  - baselinkからGMPSセンサまでのyaw方向のオフセットを計測して設定。CCWが+
+- tf_rfid_x
+  - baselinkからRFIDリーダまでの縦方向のオフセットを計測して設定。RFIDが前にあるときが+
+- th_rfid_detect_range_m
+  - 基本的に変える必要はない
+- th_association_error_dist_m
+  - 基本的に変える必要はない
+  - 磁気マーカの設置間隔の半分が目安。2m間隔で敷設していれば1m
+  - この値を広くすれば、多少自己位置が怪しくても対応付けをしにいく。ただし誤った対応付けを行う可能性も高まる
+- th_association_break_dist_m
+  - 基本的に変える必要はない
+  - 磁気マーカの対応付けにおいてテーブルの探索を早期に打ち切る際の閾値。磁気マーカの最小間隔の半分が目安。公道タイプは最小1mなので、その半分の0.5m
+  - 処理効率を多少改善するための閾値であり、大きくすると誤った対応付けで終了する可能性が高くなる
+- th_dist_double_marker_m
+  - 基本的に変える必要はない
+  - この値を大きくすると、離れたマーカでも二連マーカとしてyaw推定をする。公道タイプは2m間隔を想定しており、3m以上での精度検証はしていない
+- th_yaw_diff_double_marker_rad
+  - 基本的に変える必要はない
+  - この値を大きくすると、直進していなかったとしても二連マーカとしてyaw推定をする。直進の仮定が崩れるほどyaw推定の精度は悪化する
+- marker_d_dist_m
+  - 基本的に変える必要はない
+  - RFIDによる強制紐づけを行いたい二連マーカのマーカ間距離を設定する。通常は2m間隔の2個を1セットとするが、1m間隔や3m間隔にしたい場合は変更が必要
+- th_marker_d_dist_m
+  - 基本的に変える必要はない
+  - marker_d_dist_mに対するtolerance
+- th_rfdi_forced_section_change_m
+  - 基本的に変える必要はない
+  - RFID強制紐づけの発動を早めたい場合は、これを小さくする
+- sigma_x_gmps
+  - この値を小さくすると、EKFがdead reckoningではなくgmps_pose寄りになる
+  - 経験上7cmを設定しているが、特に根拠はない。他の観測やDR側のsigmaと合わせてちょうどいいバランスを手探りで設定している
+- sigma_y_gmps
+  - xと同じ
+- sigma_theta_gmps
+  - この値を小さくするとEKFがdead reckoningではなくgmps_pose寄りになる
+  - 単体マーカの場合はyaw推定をしないため、かなり大きい値を設定し、dead reckoningによるヨーレートの積分を重視している
+  - 二連マーカの場合はyaw推定をしているので小さくすべきなのだが、ソースコードの修正が必要なためできていない
 
 # flowchart by mermaid
 ```mermaid
