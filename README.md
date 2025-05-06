@@ -125,71 +125,60 @@ $$\tilde{y}_c = y_m^{(i)} + e_m\cos(\theta_c) + l_m^\prime \sin(\theta_c)$$
 # flowchart by mermaid
 ```mermaid
 ---
-title: gmps_localizer v2.1.0
+title: gmps_localizer main flow (v2.3.0)
 ---
 graph TD;
 
-subgraph callback_detect
-a0[["update_mileage( )"]]
-a1[["push_marker_queue( )"]]
-cond1{rfid_queue != empty}
-a2[["marker_association_by_rfid( )"]]
-cond2{"rfid_association was failed AND
-prev_pose is valid"}
-a3[["marker_association_by_prev_pose( )"]]
-a4[publish info]
+START((Start))
+RECV_PREVPOSE["Receive /prev_pose"]
+RECV_RFID["Receive /rfid"]
+RECV_GMPS["Receive /gmps_detect"]
+RECV_VEL["Receive /velocity"]
 
-cond3{association was suceeded}
-cond4{marker_queue includes two markers}
-a5[["check_double_marker( )"]]
+UPDATE_POSE["Update previous pose and velocity"]
+UPDATE_RFID["Update RFID queue"]
+UPDATE_MARKER["Update marker queue"]
 
-cond5{f_double_marker==true}
-a6[["measurement_double_marker( )"]]
-cond6{prev_pose is valid}
-a7[["measurement_single_marker( )"]]
-a9[[publish pose]]
-a10[/START\]
-a11[\END/]
+FORCED_REQ{Is forced RFID association requested?}
+FORCED_ASSOC["Forced RFID association"]
+FORCED_OK{Forced association succeeded?}
 
-a10 -->a0
-a0 --> a1
-a1 --> cond1
-cond1 --Y--> a2
-a2 --> cond2
-cond1 --N-->cond2
-cond2 --Y-->a3
-a3 -->a4
-cond2 --N-->a4
-a4 --> cond3
-cond3 --Y-->cond4
-cond3 --N--> a11
-cond4 --Y --> a5
-cond4 --N -->cond5
-a5 --> cond5
-cond5 --Y--> a6
-cond5 --N--> cond6
-a6 -->a9
-cond6 --Y-->a7
-cond6 --N--> a11
-a7 --> a9
-a9 --> a11
-end
+ASSOC_RFID["RFID-based marker association"]
+ASSOC_POSE["Prev pose-based marker association"]
+ASSOC_OK{Association succeeded?}
 
-subgraph callback_prevpose
-b1[subscribe /prev_pose]
-b2[store pose information]
-b1 --> b2
-end
+CHECK_DOUBLE{Double marker?}
+MEASURE_DOUBLE["Estimate pose by double marker"]
+MEASURE_SINGLE["Estimate pose by single marker"]
+PUBLISH["Publish estimated pose"]
+END((End))
 
-subgraph callback_rfid
-c1[subscribe /rfid]
-c2[["update_mileage( )"]]
-c3[[push_rfid_queue]]
-c1-->c2-->c3
-end
+START --> RECV_PREVPOSE
+START --> RECV_RFID
+START --> RECV_GMPS
+START --> RECV_VEL
 
-callback_prevpose --> callback_detect
-callback_rfid --> callback_detect
+RECV_PREVPOSE --> UPDATE_POSE
+RECV_RFID --> UPDATE_RFID
+RECV_GMPS --> UPDATE_MARKER
+RECV_VEL --> UPDATE_POSE
 
+UPDATE_MARKER --> FORCED_REQ
+FORCED_REQ -- Yes --> FORCED_ASSOC
+FORCED_ASSOC --> FORCED_OK
+FORCED_OK -- Yes --> ASSOC_OK
+FORCED_OK -- No --> ASSOC_RFID
+FORCED_REQ -- No --> ASSOC_RFID
 
+ASSOC_RFID -- Failed --> ASSOC_POSE
+ASSOC_RFID -- Succeeded --> ASSOC_OK
+ASSOC_POSE --> ASSOC_OK
+
+ASSOC_OK -- No --> END
+ASSOC_OK -- Yes --> CHECK_DOUBLE
+CHECK_DOUBLE -- Yes --> MEASURE_DOUBLE
+CHECK_DOUBLE -- No --> MEASURE_SINGLE
+MEASURE_DOUBLE --> PUBLISH
+MEASURE_SINGLE --> PUBLISH
+PUBLISH --> END
 ```
